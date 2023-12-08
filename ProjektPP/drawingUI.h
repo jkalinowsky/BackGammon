@@ -1,13 +1,15 @@
+#ifndef DRAWINGUI_H
+#define DRAWINGUI_H
+
 #include <iostream>
 #include"conio2.h"
 #include <time.h>
+#include "declare.h"
 
 using namespace std;
 
 #define PLAYERONE 1
 #define PLAYERTWO 2
-
-
 
 void termConfig() {
     settitle("BackGammon");
@@ -82,6 +84,10 @@ void gameUIDraw(int dice1, int dice2, int turn) {
     char diceC1[2], diceC2[2];
     sprintf(diceC1, "%d", dice1);
     sprintf(diceC2, "%d", dice2);
+    if (dice1 < 0)
+        diceC1[0] = 'X';
+    if (dice2 < 0)
+        diceC2[0] = 'X';
 
     textcolor(WHITE);
     gotoxy(34, 2);
@@ -91,6 +97,7 @@ void gameUIDraw(int dice1, int dice2, int turn) {
     diceUIDraw(diceC1, diceC2);
 }
 
+#endif // DRAWINGUI_H
 
 
 

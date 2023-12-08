@@ -135,6 +135,7 @@
     <ClInclude Include="declare.h" />
     <ClInclude Include="drawingUI.h" />
     <ClInclude Include="pawns.h" />
+    <ClInclude Include="saves.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

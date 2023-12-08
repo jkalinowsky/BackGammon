@@ -1,10 +1,14 @@
+#ifndef PAWNS_H
+#define PAWNS_H
+
 #include <iostream>
 #include"conio2.h"
 #include <time.h>
+#include "declare.h"
 
 using namespace std;
 
-void quarterCheck(int array[24][2], int i, int startingX, int startingY) {
+void quarterCheck(int array[24][3], int i, int startingX, int startingY) {
     int counter, modifier = 1;
     if (array[i][0] != 0) {
         textcolor(RED);
@@ -32,7 +36,7 @@ void quarterCheck(int array[24][2], int i, int startingX, int startingY) {
     }
 }
 
-void pawnsPlacement(int array[24][2]) {
+void pawnsPlacement(int array[24][3]) {
     for (int i = 0; i < 24; i++) {
         if (i < 12) {
             if (i < 6) {
@@ -53,3 +57,5 @@ void pawnsPlacement(int array[24][2]) {
     }
     textcolor(GREEN);
 }
+
+#endif // PAWNS_H
