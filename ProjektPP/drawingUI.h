@@ -98,6 +98,3 @@ void gameUIDraw(int dice1, int dice2, int turn) {
 }
 
 #endif // DRAWINGUI_H
-
-
-

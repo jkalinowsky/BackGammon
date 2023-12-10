@@ -20,15 +20,20 @@ struct s_takeCords {
     int pawnCord, takeCord;
 };
 
+struct s_deadPawns {
+    int playeronePawns, playertwoPawns;
+};
+
 typedef struct s_game s_game;
 typedef struct s_moveCords s_moveCords;
 typedef struct s_possibleCords s_possibleCords;
 typedef struct s_takeCords s_takeCords;
+typedef struct s_deadPawns s_deadPawns;
 
 
 void diceRoll(s_game* gameData);
 void startingTurn(s_game* gamedata);
-void drawBoard(s_game gameData);
+void drawBoard(s_game gameData, s_deadPawns deadPawns);
 void establishPossibleDest(s_game gameData, int pawnCord, s_possibleCords* possCords);
 void showGraphicMove(int cord);
 void showPossibleMoves(s_possibleCords possCords, s_game gameData);
@@ -36,8 +41,8 @@ void makeMove(s_game* gameData, s_moveCords moveCords);
 void checkPossiblePawnTakes(s_game gameData, s_takeCords* takeCords);
 void checkPossCords(s_game gameData, s_possibleCords* possCords);
 void checkPawnMoves(s_game* gameData);
-void getMoveCords(s_game* gameData, s_moveCords* moveCords);
-void move(s_game* gameData);
+void getMoveCords(s_game* gameData, s_moveCords* moveCords, s_deadPawns* deadPawns);
+void move(s_game* gameData, s_deadPawns* deadPawns);
 void changeTurn(s_game* gameData);
 void game(s_game* gameData);
 s_game gameInitialize();

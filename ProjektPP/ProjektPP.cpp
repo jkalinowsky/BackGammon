@@ -18,15 +18,7 @@ void diceRoll(s_game *gameData) {
     gameData->dice2 = (rand() % 6 + 1);
 }
 
-void startingTurn(s_game *gameData) {
-    char diceC1[2], diceC2[2];
-    diceRoll(gameData);
-
-    textcolor(WHITE);
-    gotoxy(30, 1);
-    cputs("Press SPACE to roll dice");
-    getch();
-
+void diceWhileNotEven(s_game* gameData) {
     while (gameData->dice1 == gameData->dice2) {
         diceRoll(gameData);
     }
@@ -36,6 +28,17 @@ void startingTurn(s_game *gameData) {
     else {
         gameData->turn = PLAYERTWO;
     }
+}
+
+void startingTurn(s_game *gameData) {
+    char diceC1[2], diceC2[2];
+    diceRoll(gameData);
+    diceWhileNotEven(gameData);
+
+    textcolor(WHITE);
+    gotoxy(30, 1);
+    cputs("Press any KEY to roll dice");
+    getch();
 
     sprintf(diceC1, "%c", '0' + gameData->dice1);
     sprintf(diceC2, "%c", '0' + gameData->dice2);
@@ -66,7 +69,7 @@ void startingTurn(s_game *gameData) {
 s_game gameInitialize() {
     s_game gameData;
     int startingPawns[24][3] = {
-        {0, 2, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0 , 0}, {5, 0, 0},   {0, 0, 0}, {3, 0, 0},
+        {0, 2, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {5, 0, 0}, {0, 0, 0}, {3, 0, 0},
         {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 5, 0}, {5, 0, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0},
         {0, 3, 0}, {0, 0, 0}, {0, 5, 0}, {0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {2, 0, 0}
     };
@@ -85,11 +88,30 @@ s_game gameInitialize() {
     return gameData;
 }
 
-void drawBoard(s_game gameData) {
+
+void drawDeadPawns(s_game gameData, s_deadPawns deadPawns) {
+    char deadS[3];
+    if (deadPawns.playertwoPawns != 0) {
+        gotoxy(19, 14);
+        cputs("XX  -  ");
+        sprintf(deadS, "%d", deadPawns.playertwoPawns);
+        cputs(deadS);
+    }
+    if (deadPawns.playeronePawns != 0) {
+        gotoxy(55, 14);
+        cputs("OO  -  ");
+        sprintf(deadS, "%d", deadPawns.playeronePawns);
+        cputs(deadS);
+    }
+}
+
+void drawBoard(s_game gameData, s_deadPawns deadPawns) {
     clrscr();
     drawEmptyBoard();
     pawnsPlacement(gameData.pawns);
     gameUIDraw(gameData.dice1, gameData.dice2, gameData.turn);
+    if (deadPawns.playeronePawns != 0 || deadPawns.playertwoPawns != 0)
+        drawDeadPawns(gameData, deadPawns);
 }
 
 void establishPossibleDest(s_game gameData, int pawnCord, s_possibleCords *possCords) {
@@ -103,9 +125,9 @@ void establishPossibleDest(s_game gameData, int pawnCord, s_possibleCords *possC
         index = 0;
     }
 
-    possCords->cord1 = pawnCord + (gameData.dice1 * modifier);
-    possCords->cord2 = pawnCord + (gameData.dice2 * modifier);
-    possCords->cord3 = pawnCord + ((gameData.dice1 + gameData.dice2) * modifier);
+    possCords->cord1 = (gameData.dice1 != 0) ? (pawnCord + (gameData.dice1 * modifier)) : 0;
+    possCords->cord2 = (gameData.dice2 != 0) ? (pawnCord + (gameData.dice2 * modifier)) : 0;
+    possCords->cord3 = (gameData.dice1 != 0 && gameData.dice2 != 0) ? (pawnCord + ((gameData.dice1 + gameData.dice2) * modifier)) : 0;
 }
 
 void showGraphicMove(int cord) {
@@ -146,7 +168,7 @@ void showPossibleMoves(s_possibleCords possCords, s_game gameData) {
     textcolor(GREEN);
 }
 
-void makeMove(s_game* gameData, s_moveCords moveCords) {
+void makeNormalMove(s_game* gameData, s_moveCords moveCords) {
     int index;
     if (gameData->turn == PLAYERONE) {
         index = 0;
@@ -159,32 +181,34 @@ void makeMove(s_game* gameData, s_moveCords moveCords) {
     gameData->pawns[moveCords.destCord - 1][index] += 1;
 }
 
+void checkPawnTakesCords(s_game gameData, s_takeCords* takeCords, s_possibleCords possCords, int index, int j, int i) {
+     if (gameData.pawns[j][index - 1] == 1 && j == possCords.cord1) {
+        takeCords->pawnCord = (i + 1);
+        takeCords->takeCord = (j + 1);
+    }
+    else if (gameData.pawns[j][index - 1] == 1 && j == possCords.cord2) {
+        takeCords->pawnCord = (i + 1);
+        takeCords->takeCord = (j + 1);
+    }
+    else if (gameData.pawns[j][index - 1] == 1 && j == possCords.cord3) {
+        takeCords->pawnCord = (i + 1);
+        takeCords->takeCord = (j + 1);
+    }
+}
+
 void checkPossiblePawnTakes(s_game gameData, s_takeCords* takeCords) {
     s_possibleCords possCords = { 0, 0, 0 };
     for (int i = 0; i < 24; i++) {
         if (gameData.pawns[i][gameData.turn - 1] > 0) {
-            establishPossibleDest(gameData, i+1, &possCords);
+            establishPossibleDest(gameData, i, &possCords);
             if (gameData.turn == PLAYERONE) {
-                for (int j = 1; j < 25; j++) {
-                    if (gameData.pawns[j-1][PLAYERTWO - 1] == 1 && j == possCords.cord1) {
-                        takeCords->pawnCord = i;
-                        takeCords->takeCord = j;
-                    }
-                    else if (gameData.pawns[j-1][PLAYERTWO - 1] == 1 && j == possCords.cord2) {
-                        takeCords->pawnCord = i;
-                        takeCords->takeCord = j;
-                    }
-                    else if (gameData.pawns[j-1][PLAYERTWO - 1] == 1 && j == possCords.cord3) {
-                        takeCords->pawnCord = i;
-                        takeCords->takeCord = j;
-                    }
+                for (int j = 0; j < 24; j++) {
+                    checkPawnTakesCords(gameData, takeCords, possCords, PLAYERTWO, j, i);
                  
                 }
             } else {
-                for (int j = 23; j > -1; j--) {
-                    if (gameData.pawns[j][PLAYERONE - 1] == 1 && (j == possCords.cord1 || j == possCords.cord2 || j == possCords.cord3)) {
-                        takeCords->pawnCord = i;
-                    }
+                for (int j = 24; j > 0; j--) {
+                    checkPawnTakesCords(gameData, takeCords, possCords, PLAYERONE, j, i);
                 }
             }
         }
@@ -221,36 +245,38 @@ void checkPawnMoves(s_game* gameData) {
     }
 }
 
-void getMoveCords(s_game *gameData, s_moveCords* moveCords) {
-    char inputS[3];
-    int possible = 0;
-    s_possibleCords possCords = { 0, 0, 0 };
-    s_takeCords takeCords = { -1, -1 };
-    checkPossiblePawnTakes(*gameData, &takeCords);
+void showPossPawns(s_game gameData) {
+    for (int i = 0; i < 24; i++) {
+        if (gameData.pawns[i][2] == 1) {
+            textcolor(WHITE);
+            showGraphicMove(i + 1);
+            textcolor(GREEN);
+        }
+    }
+}
+
+void pawnFieldText() {
     gotoxy(5, 29);
     cputs("Type pawn field: (submit with 2xenter) ");
     gotoxy(50, 29);
     cputs(":");
+}
+
+void getPawnCord(s_game *gameData, s_moveCords* moveCords, s_takeCords takeCords, s_deadPawns deadPawns) {
+    
+    pawnFieldText();
     if (takeCords.pawnCord != -1) {
-        gameData->pawns[takeCords.pawnCord][2] = 1;
+        gameData->pawns[takeCords.pawnCord - 1][2] = 1;
     }
     else {
         checkPawnMoves(gameData);
     }
 
-    // showing possible pawns to choose
-    for (int i = 0; i < 24; i++) { 
-        if (gameData->pawns[i][2] == 1) {
-            textcolor(WHITE);
-            showGraphicMove(i+1);
-            textcolor(GREEN);
-        }
-    }
 
-    while (gameData->pawns[moveCords->pawnCord-1][2] != 1) {
-        
+
+    showPossPawns(*gameData);
+    while (gameData->pawns[moveCords->pawnCord - 1][2] != 1) {
         scanf("%d", &moveCords->pawnCord);
-        sprintf(inputS, "%d", moveCords->pawnCord);
         if (gameData->pawns[moveCords->pawnCord - 1][2] != 1) {
             gotoxy(60, 29);
             textcolor(DARKGRAY);
@@ -258,68 +284,65 @@ void getMoveCords(s_game *gameData, s_moveCords* moveCords) {
             textcolor(GREEN);
         }
     }
-    drawBoard(*gameData);
-    gotoxy(5, 29);
-    cputs("Type pawn field: (submit with 2xenter) ");
-    gotoxy(50, 29);
-    cputs(":");
-    gotoxy(60, 29);
-    cputs(inputS);
+    drawBoard(*gameData, deadPawns);
+    pawnFieldText();
+    
+}
 
+void destFieldText() {
+    gotoxy(5, 30);
+    cputs("Type destination field: (2xsubmit with enter) ");
+    gotoxy(50, 30);
+    cputs(":");
+}
+
+void getDestCord_take(s_game* gameData, s_moveCords* moveCords, s_takeCords takeCords) {
+    while (moveCords->destCord != takeCords.takeCord) {
+        destFieldText();
+        scanf("%d", &moveCords->destCord);
+        if (moveCords->destCord != takeCords.takeCord) {
+            gotoxy(60, 30);
+            textcolor(DARKGRAY);
+            cputs("Wrong destination field. Choose the highlited cord!");
+            textcolor(GREEN);
+        }
+    }
+}
+
+void getDestCord_normal(s_game* gameData, s_moveCords* moveCords, s_possibleCords possCords) {
+    while (moveCords->destCord != possCords.cord1 && moveCords->destCord != possCords.cord2 && moveCords->destCord != possCords.cord3) {
+        destFieldText();
+        scanf("%d", &moveCords->destCord);
+        if (moveCords->destCord != possCords.cord1 && moveCords->destCord != possCords.cord2 && moveCords->destCord != possCords.cord3) {
+            gotoxy(60, 30);
+            textcolor(DARKGRAY);
+            cputs("Wrong destination field. Choose the highlited cord!");
+            textcolor(GREEN);
+        }
+    }
+}
+
+void preparePossMoves(s_game gameData, s_moveCords* moveCords, s_possibleCords* possCords, s_takeCords takeCords) {
     if (takeCords.pawnCord != -1) {
-        textcolor(WHITE);
-        showGraphicMove(takeCords.takeCord+1);
+        textcolor(MAGENTA);
+        showGraphicMove(takeCords.takeCord);
         textcolor(GREEN);
     }
     else {
-        establishPossibleDest(*gameData, moveCords->pawnCord, &possCords);
-        checkPossCords(*gameData, &possCords);
-        showPossibleMoves(possCords, *gameData);
+        establishPossibleDest(gameData, moveCords->pawnCord, possCords);
+        checkPossCords(gameData, possCords);
+        showPossibleMoves(*possCords, gameData);
     }
-    
-    
-    if (takeCords.pawnCord != -1) {
-        while (moveCords->destCord != takeCords.takeCord) {
-            gotoxy(5, 30);
-            cputs("Type destination field: (2xsubmit with enter) ");
-            gotoxy(50, 30);
-            cputs(":");
-            scanf("%d", &moveCords->destCord);  
-            if (moveCords->destCord != takeCords.takeCord) {
-                gotoxy(60, 30);
-                textcolor(DARKGRAY);
-                cputs("Wrong destination field. Choose the highlited cord!");
-                textcolor(GREEN);
-            }
-        }
-    }
-    else {
-        while (moveCords->destCord != possCords.cord1 && moveCords->destCord != possCords.cord2 && moveCords->destCord != possCords.cord3) {
-            gotoxy(5, 30);
-            cputs("Type destination field: (2xsubmit with enter) ");
-            gotoxy(50, 30);
-            cputs(":");
-            scanf("%d", &moveCords->destCord);
-            if (moveCords->destCord != possCords.cord1 && moveCords->destCord != possCords.cord2 && moveCords->destCord != possCords.cord3) {
-                gotoxy(60, 30);
-                textcolor(DARKGRAY);
-                cputs("Wrong destination field. Choose the highlited cord!");
-                textcolor(GREEN);
-            }
-        }
-    }
-    sprintf(inputS, "%d", moveCords->destCord);
-    gotoxy(50, 30);
-    cputs(inputS); 
-    makeMove(gameData, *moveCords);
+}
 
-    if (possCords.cord1 > 0 && moveCords->destCord == possCords.cord1) {
+void resetDicesAndMoves(s_game* gameData, s_moveCords moveCords, s_possibleCords possCords) {
+    if (possCords.cord1 > 0 && moveCords.destCord == possCords.cord1) {
         gameData->dice1 = 0;
     }
-    else if (possCords.cord2 > 0 && moveCords->destCord == possCords.cord2) {
+    else if (possCords.cord2 > 0 && moveCords.destCord == possCords.cord2) {
         gameData->dice2 = 0;
     }
-    else if (possCords.cord3 > 0 && moveCords->destCord == possCords.cord3) {
+    else if (possCords.cord3 > 0 && moveCords.destCord == possCords.cord3) {
         gameData->dice1 = 0;
         gameData->dice2 = 0;
     }
@@ -328,12 +351,104 @@ void getMoveCords(s_game *gameData, s_moveCords* moveCords) {
     }
 }
 
-void move(s_game *gameData) {
+void makeTakeMove(s_game* gameData, s_moveCords moveCords, s_deadPawns* deadPawns) {
+    int indexFriendly, indexEnemy;
+    if (gameData->turn == PLAYERONE) {
+        indexFriendly = 0;
+        indexEnemy = 1;
+        deadPawns->playertwoPawns += 1;
+    }
+
+    else {
+        indexFriendly = 1;
+        indexEnemy = 0;
+        deadPawns->playeronePawns += 1;
+    }
+    gameData->pawns[moveCords.pawnCord - 1][indexFriendly] -= 1;
+    gameData->pawns[moveCords.destCord - 1][indexEnemy] -= 1;
+    gameData->pawns[moveCords.destCord - 1][indexFriendly] += 1;
+}
+
+void getMoveCords(s_game *gameData, s_moveCords* moveCords, s_deadPawns* deadPawns) {
+    char inputS[3];
+    int possible = 0;
+    s_possibleCords possCords = { 0, 0, 0 };
+    s_takeCords takeCords = { -1, -1 };
+    checkPossiblePawnTakes(*gameData, &takeCords);
+
+    if ((deadPawns->playeronePawns != 0 && gameData->turn == PLAYERONE) || (deadPawns->playertwoPawns != 0 && gameData->turn == PLAYERTWO)) {
+        moveCords->pawnCord = gameData->turn == PLAYERONE ? 25 : 0;
+        gotoxy(5, 29);
+        cputs("You have to leave the bar FIRST! Press KEY");
+        getch();
+        preparePossMoves(*gameData, moveCords, &possCords, takeCords);
+    }
+    else {
+        getPawnCord(gameData, moveCords, takeCords, *deadPawns);
+        gotoxy(60, 29);
+        sprintf(inputS, "%d", moveCords->pawnCord);
+        cputs(inputS);
+        preparePossMoves(*gameData, moveCords, &possCords, takeCords);
+    }
+    
+    if (takeCords.pawnCord != -1)
+        getDestCord_take(gameData, moveCords, takeCords);
+    else 
+        getDestCord_normal(gameData, moveCords, possCords);
+
+    sprintf(inputS, "%d", moveCords->destCord);
+    gotoxy(50, 30);
+    cputs(inputS); 
+    if (takeCords.pawnCord != -1) {
+        int modifier = 1;
+        makeTakeMove(gameData, *moveCords, deadPawns);
+        if (gameData->turn == PLAYERONE)
+            modifier = -1;
+
+        if (takeCords.takeCord == takeCords.pawnCord + (gameData->dice1*modifier))
+            gameData->dice1 = 0;
+        else if (takeCords.takeCord == takeCords.pawnCord + (gameData->dice2 * modifier))
+            gameData->dice2 = 0;
+        else if (takeCords.takeCord == takeCords.pawnCord + ((gameData->dice1 + gameData->dice2) * modifier)) {
+            gameData->dice1 = 0;
+            gameData->dice2 = 0;
+        }  
+        for (int i = 0; i < 24; i++) {
+            gameData->pawns[i][2] = 0;
+        }
+    }
+    else {
+        makeNormalMove(gameData, *moveCords);
+        resetDicesAndMoves(gameData, *moveCords, possCords);
+    }
+
+}
+
+/*void removePawnFromBar(s_game* gameData, s_moveCords* moveCords, s_deadPawns* deadPawns) {
+    s_possibleCords possCords = { 0, 0, 0 };
+    drawBoard(*gameData, *deadPawns);
+    moveCords->pawnCord = gameData->turn == PLAYERONE ? 25 : 0;
+    gotoxy(5, 29);
+    cputs("You have to leave the bar FIRST! Press KEY");
+    destFieldText();
+    establishPossibleDest(*gameData, moveCords->pawnCord, &possCords);
+    checkPossCords(*gameData, &possCords);
+    showPossibleMoves(possCords, *gameData);
+    getDestCord_normal(gameData, moveCords, possCords);
+    makeNormalMove(gameData, *moveCords);
+}*/
+
+void move(s_game* gameData, s_deadPawns* deadPawns) {
     while (gameData->dice1 != 0 || gameData->dice2 != 0) {
         saveLastMove(*gameData, "savenumber.txt");
-        drawBoard(*gameData);
+        drawBoard(*gameData, *deadPawns);
         s_moveCords moveCords = { -2, -2 };
-        getMoveCords(gameData, &moveCords);
+        getMoveCords(gameData, &moveCords, deadPawns);
+        /*if ((deadPawns->playeronePawns != 0 && gameData->turn == PLAYERONE) || (deadPawns->playertwoPawns != 0 && gameData->turn == PLAYERTWO)) {
+            removePawnFromBar(gameData, &moveCords,deadPawns);
+        } 
+        else*/
+            
     }
 }
 
@@ -346,14 +461,14 @@ void changeTurn(s_game *gameData) {
 }
 
 void game(s_game *gameData) {
-    srand(time(NULL));
+    s_deadPawns deadPawns = { 0, 0 };
     getch();
     drawEmptyBoard();
     int game = TRUE;
     while (game) {
         diceRoll(gameData);
-        drawBoard(*gameData);
-        move(gameData);
+        drawBoard(*gameData, deadPawns);
+        move(gameData, &deadPawns);
         changeTurn(gameData);
     }
 }
@@ -389,10 +504,11 @@ int menu() {
 
 int main()
 {
+    srand(time(NULL));
     #ifndef __cplusplus
         Conio2_Init();
     #endif  
 
     termConfig();
     menu();
-} //debugger w getMoveCords ogarnac co tam nie gra :(
+} // naprawic removeformbarpawns bo powinna brac pod uwage bicie, restartowac kostki
