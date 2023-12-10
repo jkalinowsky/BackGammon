@@ -5,7 +5,7 @@
 
 struct s_game {
     int pawns[24][3];
-    int turn, dice1, dice2, round;
+    int turn, dice1, dice2, round, dubletValue, isLoaded;
 };
 
 struct s_moveCords {
@@ -13,7 +13,7 @@ struct s_moveCords {
 };
 
 struct s_possibleCords {
-    int cord1, cord2, cord3;
+    int cord1, cord2, cord3, cord4;
 }; 
 
 struct s_takeCords {

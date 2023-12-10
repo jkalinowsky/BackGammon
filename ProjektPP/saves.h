@@ -8,7 +8,7 @@ void saveLastMove(s_game gameData, const char* filename) {
     FILE* file = fopen(filename, "w");  // Open the file in write mode to overwrite existing content
     if (file != NULL) {
         // Save the last move information in the first line
-        fprintf(file, "%d %d %d\n", gameData.dice1, gameData.dice2, gameData.turn);
+        fprintf(file, "%d %d %d %d %d\n", gameData.dice1, gameData.dice2, gameData.turn, gameData.dubletValue, gameData.round);
 
         // Save the pawns information in the subsequent lines
         for (int i = 0; i < 24; i++) {
@@ -26,7 +26,7 @@ void loadLastMove(s_game* gameData, const char* filename) {
      FILE* file = fopen(filename, "r");
     if (file != NULL) {
         // Load the last move information from the first line
-        fscanf(file, "%d %d %d\n", &gameData->dice1, &gameData->dice2, &gameData->turn);
+        fscanf(file, "%d %d %d %d %d\n", &gameData->dice1, &gameData->dice2, &gameData->turn, &gameData->dubletValue, &gameData->round);
 
         // Load the pawn array information from the subsequent lines
         for (int i = 0; i < 24; i++) {
